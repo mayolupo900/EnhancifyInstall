@@ -2346,6 +2346,13 @@ var Enhancify = (() => {
     }
     var accessToken = Spicetify.Platform.Session.accessToken;
     var songID = common_default(songURI);
+     try {
+        // Intenta obtener los datos por la vía interna más estable
+        const data = await Spicetify.CosmosAsync.get("https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=" + songID);
+        if (data) return data; 
+    } catch (e) { 
+        console.log("La API interna falló, intentando el método antiguo..."); 
+    }
     let response = await fetch(
       "https://api.spotify.com/v1/audio-features/" + songID,
       {
@@ -2354,7 +2361,7 @@ var Enhancify = (() => {
         }
       }
     );
-    return response.status == 200 ? await response.json() : {};
+    return response.status == 200 ? await response.json() : { tracks: [] };
   }
   var nowPlayingService_default = getAudioFeatures;
 
@@ -2384,7 +2391,7 @@ var Enhancify = (() => {
         }
       }
     );
-    return response.status == 200 ? await response.json() : {};
+    return response.status == 200 ? await response.json() : { tracks: [] };
   }
   var dynamicRecommendationsService_default = getRecommendations;
 
@@ -2818,7 +2825,7 @@ var Enhancify = (() => {
           color: "white",
           fontWeight: "500"
         }
-      }, Math.round(parseFloat(this.props.floatValue) * (this.props.progressBar ? 100 : 1)), this.props.label != "" ? /* @__PURE__ */ import_react5.default.createElement("span", {
+      }, Math.round((parseFloat(this.props.floatValue) || 0) * (this.props.progressBar ? 100 : 1)), this.props.label != "" ? /* @__PURE__ */ import_react5.default.createElement("span", {
         className: app_module_default4.text,
         style: {
           fontSize: "25px",
