@@ -5,39 +5,44 @@
           "use strict";
 var Enhancify = (() => {
   // src/services/multiTrackAudioFeaturesService.tsx
-  async function getMultiTrackAudioFeatures(songIDs) {
-    if (!songIDs || songIDs.length === 0) {
-      return [];
-    }
-    const accessToken = Spicetify.Platform.Session.accessToken;
-    let allAudioFeatures = [];
-    const chunks = [];
-    const chunkSize = 100;
-    for (let i = 0; i < songIDs.length; i += chunkSize) {
-      chunks.push(songIDs.slice(i, i + chunkSize));
-    }
-for (const chunk of chunks) {
+async function getMultiTrackAudioFeatures(songIDs) {
+  if (!songIDs || songIDs.length === 0) {
+    return [];
+  }
+  
+  let allAudioFeatures = [];
+  const chunks = [];
+  const chunkSize = 100;
+  for (let i = 0; i < songIDs.length; i += chunkSize) {
+    chunks.push(songIDs.slice(i, i + chunkSize));
+  }
+  
+  for (const chunk of chunks) {
     const idsString = chunk.join(",");
-
-    // --- AQUÍ PEGAS EL BLOQUE DE COSMOS ---
+    
     try {
-      const data = await Spicetify.CosmosAsync.get("https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=" + idsString);
+      // Capa de protección Cosmos: usa la vía interna para evitar el error 429 [1]
+      const data = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=${idsString}`);
       if (data && data.audio_features) {
         allAudioFeatures = allAudioFeatures.concat(data.audio_features.filter(Boolean));
-        continue; // <--- ESTO SE SALTA EL FETCH SI COSMOS FUNCIONÓ
+        continue; // Si Cosmos funciona, saltamos el fetch manual
       }
-    } catch (e) { console.log("Cosmos falló, usando fetch..."); }
-    // ---------------------------------------
-
-    // ESTO ES EL FETCH (MÉTODO ANTIGUO) QUE YA ESTABA EN TU CÓDIGO
-    const response = await fetch( ... ); 
-    if (response.status === 200) { // ESTE ES EL IF QUE NO DEBES BORRAR
-        const data = await response.json();
-        // ... resto del código antiguo
+    } catch (e) {
+      console.log("Cosmos falló para este grupo, intentando fetch manual...");
     }
-}
-    return allAudioFeatures;
+
+    // Fallback: Fetch antiguo si Cosmos no está disponible
+    const accessToken = Spicetify.Platform.Session.accessToken;
+    const response = await fetch(`https://api.spotify.com/v1/audio-features?ids=${idsString}`, {
+      headers: { Authorization: "Bearer " + accessToken }
+    });
+    if (response.status === 200) {
+      const data = await response.json();
+      allAudioFeatures = allAudioFeatures.concat(data.audio_features.filter(Boolean));
+    }
   }
+  return allAudioFeatures;
+}
   var multiTrackAudioFeaturesService_default = getMultiTrackAudioFeatures;
 
   // src/services/playlistTrackIDService.tsx
