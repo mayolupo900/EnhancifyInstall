@@ -16,25 +16,26 @@ var Enhancify = (() => {
     for (let i = 0; i < songIDs.length; i += chunkSize) {
       chunks.push(songIDs.slice(i, i + chunkSize));
     }
-    for (const chunk of chunks) {
-      const idsString = chunk.join(",");
-      const response = await fetch(
-        `https://api.spotify.com/v1/audio-features?ids=${idsString}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      if (response.status === 200) {
-        const data = await response.json();
-        if (data && data.audio_features) {
-          allAudioFeatures = allAudioFeatures.concat(data.audio_features.filter(Boolean));
-        }
-      } else {
-        console.error("Failed to fetch audio features for chunk:", chunk);
+for (const chunk of chunks) {
+    const idsString = chunk.join(",");
+
+    // --- AQUÍ PEGAS EL BLOQUE DE COSMOS ---
+    try {
+      const data = await Spicetify.CosmosAsync.get("https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=" + idsString);
+      if (data && data.audio_features) {
+        allAudioFeatures = allAudioFeatures.concat(data.audio_features.filter(Boolean));
+        continue; // <--- ESTO SE SALTA EL FETCH SI COSMOS FUNCIONÓ
       }
+    } catch (e) { console.log("Cosmos falló, usando fetch..."); }
+    // ---------------------------------------
+
+    // ESTO ES EL FETCH (MÉTODO ANTIGUO) QUE YA ESTABA EN TU CÓDIGO
+    const response = await fetch( ... ); 
+    if (response.status === 200) { // ESTE ES EL IF QUE NO DEBES BORRAR
+        const data = await response.json();
+        // ... resto del código antiguo
     }
+}
     return allAudioFeatures;
   }
   var multiTrackAudioFeaturesService_default = getMultiTrackAudioFeatures;
