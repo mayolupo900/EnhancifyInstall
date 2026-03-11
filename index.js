@@ -2361,7 +2361,7 @@ var Enhancify = (() => {
         }
       }
     );
-    return response.status == 200 ? await response.json() : { tracks: [] };
+    return response.status == 200 ? await response.json() : {};
   }
   var nowPlayingService_default = getAudioFeatures;
 
@@ -2391,7 +2391,7 @@ var Enhancify = (() => {
         }
       }
     );
-    return response.status == 200 ? await response.json() : { tracks: [] };
+    return response.status == 200 ? await response.json() : {};
   }
   var dynamicRecommendationsService_default = getRecommendations;
 
@@ -2513,9 +2513,9 @@ var Enhancify = (() => {
 
   // src/services/enhancifyInternalService.tsx
   function RecommendationsRender(recommendations) {
-    if (Object.keys(recommendations).length == 0) {
-      return;
-    }
+   if (!recommendations || !recommendations["tracks"] || recommendations["tracks"].length === 0) {
+     return; 
+   }
     let recs = recommendations["tracks"];
     let recommendedTracksHTML = [];
     for (let i = 0; i < recs.length; i++) {
