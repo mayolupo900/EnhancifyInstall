@@ -2333,12 +2333,6 @@ var Enhancify = (() => {
   // src/components/NowPlaying.tsx
   var import_react9 = __toESM(require_react());
 
-  // src/services/common.tsx
-  function getID(uri) {
-    return uri.split(":")[2];
-  }
-  var common_default = getID;
-
   // src/services/nowPlayingService.tsx
   async function getAudioFeatures(songURI) {
     if (!songURI) {
@@ -2346,13 +2340,20 @@ var Enhancify = (() => {
     }
     var accessToken = Spicetify.Platform.Session.accessToken;
     var songID = common_default(songURI);
-     try {
-        // Intenta obtener los datos por la vía interna más estable
+    
+    try {
+        // Migración a Cosmos: La respuesta viene dentro de un array 'audio_features' [1, 2]
         const data = await Spicetify.CosmosAsync.get("https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=" + songID);
-        if (data) return data; 
+        
+        // IMPORTANTE: Extraemos el primer elemento  porque la API devuelve una lista [2]
+        if (data && data.audio_features && data.audio_features) {
+            return data.audio_features; 
+        }
     } catch (e) { 
-        console.log("La API interna falló, intentando el método antiguo..."); 
+        console.log("La API interna Cosmos falló, intentando el método antiguo..."); 
     }
+
+    // Método antiguo de respaldo (Fetch externo) [5]
     let response = await fetch(
       "https://api.spotify.com/v1/audio-features/" + songID,
       {
@@ -2364,7 +2365,7 @@ var Enhancify = (() => {
     return response.status == 200 ? await response.json() : {};
   }
   var nowPlayingService_default = getAudioFeatures;
-
+  
   // postcss-module:C:\Users\parim\AppData\Local\Temp\tmp-24776-WK7M3eVNRHNg\1939dfe04e43\app.module.css
   var app_module_default2 = { "text": "app-module__text___q6CF6_Enhancify", "topBar": "app-module__topBar___gbq6k_Enhancify", "nowPlayingSidebar": "app-module__nowPlayingSidebar___F4UGj_Enhancify", "trackInfoPrimary": "app-module__trackInfoPrimary___PLXQO_Enhancify", "trackCover": "app-module__trackCover___UFVka_Enhancify", "statsBlock": "app-module__statsBlock___F0E-V_Enhancify", "statContainer": "app-module__statContainer___aQ1Fr_Enhancify", "statTitle": "app-module__statTitle___HP8oz_Enhancify", "statLabel": "app-module__statLabel___9pxah_Enhancify", "statValue": "app-module__statValue___JfE7d_Enhancify", "graphicContainer": "app-module__graphicContainer___P76QX_Enhancify", "recommendationsSection": "app-module__recommendationsSection___Emxwk_Enhancify", "recommendationsBlock": "app-module__recommendationsBlock___NYV5h_Enhancify", "trackContainer": "app-module__trackContainer___zmxIn_Enhancify", "recommendationsCover": "app-module__recommendationsCover___7Cufk_Enhancify", "trackName": "app-module__trackName___90Kd4_Enhancify", "playIcon": "app-module__playIcon___eaD-6_Enhancify", "changeRecTragetBtn": "app-module__changeRecTragetBtn___cS88j_Enhancify", "trackNameText": "app-module__trackNameText___J3m-Y_Enhancify", "leftSideBar": "app-module__leftSideBar___-boqF_Enhancify", "scrollTitle": "app-module__scrollTitle___vNLvZ_Enhancify", "scrollText": "app-module__scrollText___25P7l_Enhancify", "recommendationsLabel": "app-module__recommendationsLabel___UHF7q_Enhancify", "recommendationHeader": "app-module__recommendationHeader___EK4Rr_Enhancify", "recommendationTarget": "app-module__recommendationTarget___RC552_Enhancify", "recommendationsHeaderSpacer": "app-module__recommendationsHeaderSpacer___M5jYa_Enhancify", "settingContainer": "app-module__settingContainer___7DWOV_Enhancify", "settingLabel": "app-module__settingLabel___jD7Lv_Enhancify", "modal": "app-module__modal___YLXrG_Enhancify", "settingsModalContainer": "app-module__settingsModalContainer___Uryaq_Enhancify", "recommendationsModalContainer": "app-module__recommendationsModalContainer___eL3j6_Enhancify", "modalHeaderContainer": "app-module__modalHeaderContainer___2jP9z_Enhancify", "sectionHeaderContainer": "app-module__sectionHeaderContainer___oa7pd_Enhancify", "settingsIconContainer": "app-module__settingsIconContainer___TDp-k_Enhancify", "metricsRecommendationContainer": "app-module__metricsRecommendationContainer___TXr7b_Enhancify", "run": "app-module__run___9fxLL_Enhancify" };
 
@@ -2373,8 +2374,10 @@ var Enhancify = (() => {
 
   // src/services/dynamicRecommendationsService.tsx
 async function getRecommendations(apiOptions) {
-  let url = "https://api.spotify.com/v1/recommendations?";
+  // 1. Usamos la nueva URL interna que has descubierto
+  let url = "https://spclient.wg.spotify.com/recommendations-seed/v1/recommendations?";
   let queryParams = [];
+  
   for (const [key, value] of Object.entries(apiOptions.data)) {
     if (!value) continue;
     queryParams.push(key + "=" + value);
@@ -2382,17 +2385,13 @@ async function getRecommendations(apiOptions) {
   url += queryParams.join("&");
   
   try {
-    var accessToken = Spicetify.Platform.Session.accessToken;
-    let response = await fetch(url, { headers: { Authorization: "Bearer " + accessToken } });
+    // 2. Migración total a Cosmos: más rápido y sin errores 429
+    const data = await Spicetify.CosmosAsync.get(url);
     
-    // Si recibes un 429 (Too Many Requests), devolvemos lista vacía para no romper la app [Log]
-    if (response.status === 429) {
-      console.warn("Spotify ha limitado las peticiones (429). Reintentando más tarde.");
-      return { tracks: [] };
-    }
-    
-    return response.status == 200 ? await response.json() : { tracks: [] };
+    // 3. Devolvemos los datos directamente (Cosmos ya procesa el JSON)
+    return data && data.tracks ? data : { tracks: [] };
   } catch (error) {
+    console.error("Error en recomendaciones por Cosmos:", error);
     return { tracks: [] };
   }
 }
