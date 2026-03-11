@@ -2372,27 +2372,30 @@ var Enhancify = (() => {
   var import_react3 = __toESM(require_react());
 
   // src/services/dynamicRecommendationsService.tsx
-  async function getRecommendations(apiOptions) {
-    let url = "https://api.spotify.com/v1/recommendations?";
-    let queryParams = [];
-    for (const [key, value] of Object.entries(apiOptions.data)) {
-      if (!value) {
-        continue;
-      }
-      queryParams.push(key + "=" + value);
-    }
-    url += queryParams.join("&");
-    var accessToken = Spicetify.Platform.Session.accessToken;
-    let response = await fetch(
-      url,
-      {
-        headers: {
-          Authorization: "Bearer " + accessToken
-        }
-      }
-    );
-    return response.status == 200 ? await response.json() : {};
+async function getRecommendations(apiOptions) {
+  let url = "https://api.spotify.com/v1/recommendations?";
+  let queryParams = [];
+  for (const [key, value] of Object.entries(apiOptions.data)) {
+    if (!value) continue;
+    queryParams.push(key + "=" + value);
   }
+  url += queryParams.join("&");
+  
+  try {
+    var accessToken = Spicetify.Platform.Session.accessToken;
+    let response = await fetch(url, { headers: { Authorization: "Bearer " + accessToken } });
+    
+    // Si recibes un 429 (Too Many Requests), devolvemos lista vacía para no romper la app [Log]
+    if (response.status === 429) {
+      console.warn("Spotify ha limitado las peticiones (429). Reintentando más tarde.");
+      return { tracks: [] };
+    }
+    
+    return response.status == 200 ? await response.json() : { tracks: [] };
+  } catch (error) {
+    return { tracks: [] };
+  }
+}
   var dynamicRecommendationsService_default = getRecommendations;
 
   // src/types/spotify-web-api.d.ts
