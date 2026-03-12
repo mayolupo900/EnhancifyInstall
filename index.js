@@ -2334,36 +2334,33 @@ var Enhancify = (() => {
   var import_react9 = __toESM(require_react());
 
   // src/services/nowPlayingService.tsx
-  async function getAudioFeatures(songURI) {
-    if (!songURI) {
-      return {};
-    }
-    var accessToken = Spicetify.Platform.Session.accessToken;
-    var songID = common_default(songURI);
-    
-    try {
-        // Migración a Cosmos: La respuesta viene dentro de un array 'audio_features' [1, 2]
-        const data = await Spicetify.CosmosAsync.get("https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=" + songID);
-        
-        // IMPORTANTE: Extraemos el primer elemento  porque la API devuelve una lista [2]
-        if (data && data.audio_features && data.audio_features) {
-            return data.audio_features; 
-        }
-    } catch (e) { 
-        console.log("La API interna Cosmos falló, intentando el método antiguo..."); 
-    }
+async function getAudioFeatures(songURI) {
+  if (!songURI) return {};
 
-    // Método antiguo de respaldo (Fetch externo) [5]
-    let response = await fetch(
-      "https://api.spotify.com/v1/audio-features/" + songID,
-      {
-        headers: {
-          Authorization: "Bearer " + accessToken
-        }
-      }
-    );
-    return response.status == 200 ? await response.json() : {};
+  // Corrección: Usamos Spicetify.URI para obtener el ID de forma segura
+  const songID = Spicetify.URI.fromString(songURI).id;
+
+  try {
+    // Migración a Cosmos: Vía interna estable
+    const url = `https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=${songID}`;
+    const data = await Spicetify.CosmosAsync.get(url);
+
+    // Ajuste de estructura: Cosmos devuelve una lista en 'audio_features'
+    if (data && data.audio_features && data.audio_features) {
+      return data.audio_features;
+    }
+  } catch (e) {
+    console.log("La API interna Cosmos falló, intentando el método antiguo...", e);
   }
+
+  // Fallback: Si Cosmos falla, usamos la Web API (fetch)
+  var accessToken = Spicetify.Platform.Session.accessToken;
+  let response = await fetch(`https://api.spotify.com/v1/audio-features/${songID}`, {
+    headers: { Authorization: "Bearer " + accessToken }
+  });
+  return response.status == 200 ? await response.json() : {};
+}
+
   var nowPlayingService_default = getAudioFeatures;
   
   // postcss-module:C:\Users\parim\AppData\Local\Temp\tmp-24776-WK7M3eVNRHNg\1939dfe04e43\app.module.css
@@ -2374,21 +2371,20 @@ var Enhancify = (() => {
 
   // src/services/dynamicRecommendationsService.tsx
 async function getRecommendations(apiOptions) {
-  // 1. Usamos la nueva URL interna que has descubierto
+  // Usamos la URL interna de recomendaciones que encontraste
   let url = "https://spclient.wg.spotify.com/recommendations-seed/v1/recommendations?";
   let queryParams = [];
-  
   for (const [key, value] of Object.entries(apiOptions.data)) {
     if (!value) continue;
     queryParams.push(key + "=" + value);
   }
   url += queryParams.join("&");
-  
+
   try {
-    // 2. Migración total a Cosmos: más rápido y sin errores 429
+    // IMPORTANTE: Cambiamos 'fetch' por 'Spicetify.CosmosAsync.get' para evitar el error de CORS
     const data = await Spicetify.CosmosAsync.get(url);
     
-    // 3. Devolvemos los datos directamente (Cosmos ya procesa el JSON)
+    // Devolvemos los datos (Cosmos ya entrega el JSON procesado)
     return data && data.tracks ? data : { tracks: [] };
   } catch (error) {
     console.error("Error en recomendaciones por Cosmos:", error);
