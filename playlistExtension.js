@@ -6,9 +6,7 @@
 var Enhancify = (() => {
   // src/services/multiTrackAudioFeaturesService.tsx
 async function getMultiTrackAudioFeatures(songIDs) {
-  if (!songIDs || songIDs.length === 0) {
-    return [];
-  }
+  if (!songIDs || songIDs.length === 0) return [];
   
   let allAudioFeatures = [];
   const chunks = [];
@@ -19,19 +17,18 @@ async function getMultiTrackAudioFeatures(songIDs) {
   
   for (const chunk of chunks) {
     const idsString = chunk.join(",");
-    
     try {
-      // Capa de protección Cosmos: usa la vía interna para evitar el error 429 [1]
+      // Capa de protección Cosmos para peticiones masivas [1, 9]
       const data = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=${idsString}`);
       if (data && data.audio_features) {
         allAudioFeatures = allAudioFeatures.concat(data.audio_features.filter(Boolean));
-        continue; // Si Cosmos funciona, saltamos el fetch manual
+        continue; // Saltamos al siguiente chunk si Cosmos funcionó
       }
     } catch (e) {
-      console.log("Cosmos falló para este grupo, intentando fetch manual...");
+      console.log("Cosmos masivo falló, intentando fetch manual...");
     }
 
-    // Fallback: Fetch antiguo si Cosmos no está disponible
+    // Fallback: Fetch antiguo si falla la vía interna [10]
     const accessToken = Spicetify.Platform.Session.accessToken;
     const response = await fetch(`https://api.spotify.com/v1/audio-features?ids=${idsString}`, {
       headers: { Authorization: "Bearer " + accessToken }
