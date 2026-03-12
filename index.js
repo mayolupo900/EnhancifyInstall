@@ -2337,29 +2337,30 @@ var Enhancify = (() => {
 async function getAudioFeatures(songURI) {
   if (!songURI) return {};
 
-  // Corrección: Usamos Spicetify.URI para obtener el ID de forma segura
+  // Usamos el método nativo de Spicetify para evitar el ReferenceError [Log]
   const songID = Spicetify.URI.fromString(songURI).id;
 
   try {
-    // Migración a Cosmos: Vía interna estable
+    // Llamada a la API interna de Cosmos (Sin límites 429) [1]
     const url = `https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=${songID}`;
     const data = await Spicetify.CosmosAsync.get(url);
 
-    // Ajuste de estructura: Cosmos devuelve una lista en 'audio_features'
+    // DESEMPAQUETADO: Extraemos el primer elemento  porque es una lista [2, 3]
     if (data && data.audio_features && data.audio_features) {
       return data.audio_features;
     }
   } catch (e) {
-    console.log("La API interna Cosmos falló, intentando el método antiguo...", e);
+    console.log("Fallo en Cosmos, intentando método antiguo...");
   }
 
-  // Fallback: Si Cosmos falla, usamos la Web API (fetch)
+  // Fallback: Método antiguo con Web API (Solo si Cosmos falla) [2, 4]
   var accessToken = Spicetify.Platform.Session.accessToken;
   let response = await fetch(`https://api.spotify.com/v1/audio-features/${songID}`, {
     headers: { Authorization: "Bearer " + accessToken }
   });
   return response.status == 200 ? await response.json() : {};
 }
+
 
   var nowPlayingService_default = getAudioFeatures;
   
@@ -2371,7 +2372,7 @@ async function getAudioFeatures(songURI) {
 
   // src/services/dynamicRecommendationsService.tsx
 async function getRecommendations(apiOptions) {
-  // Usamos la URL interna de recomendaciones que encontraste
+  // Usamos el endpoint interno que encontraste (más rápido y algoritmos reales)
   let url = "https://spclient.wg.spotify.com/recommendations-seed/v1/recommendations?";
   let queryParams = [];
   for (const [key, value] of Object.entries(apiOptions.data)) {
@@ -2381,16 +2382,17 @@ async function getRecommendations(apiOptions) {
   url += queryParams.join("&");
 
   try {
-    // IMPORTANTE: Cambiamos 'fetch' por 'Spicetify.CosmosAsync.get' para evitar el error de CORS
+    // IMPORTANTE: Cambiamos 'fetch' por 'Spicetify.CosmosAsync.get' para evitar CORS [Log]
     const data = await Spicetify.CosmosAsync.get(url);
     
-    // Devolvemos los datos (Cosmos ya entrega el JSON procesado)
+    // La estructura de este endpoint ya trae la propiedad 'tracks' [5, 6]
     return data && data.tracks ? data : { tracks: [] };
   } catch (error) {
     console.error("Error en recomendaciones por Cosmos:", error);
     return { tracks: [] };
   }
 }
+
   var dynamicRecommendationsService_default = getRecommendations;
 
   // src/types/spotify-web-api.d.ts
@@ -2863,7 +2865,7 @@ async function getRecommendations(apiOptions) {
       };
       this.generateRecommendations = async () => {
         let apiOptions = new GetRecommendationsInput();
-        apiOptions.data.seed_tracks = common_default(this.props.songURI);
+        apiOptions.data.seed_tracks = Spicetify.URI.fromString(this.props.songURI).id;
         apiOptions.data.limit = "8";
         for (let key in this.props.selectedMetrics) {
           let apiDataKey = "target_" + key.toLowerCase();
