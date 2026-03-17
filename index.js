@@ -2364,28 +2364,33 @@ var Enhancify = (() => {
   // src/components/DynamicRecommendations.tsx
   var import_react3 = __toESM(require_react());
 
-  // src/services/dynamicRecommendationsService.tsx
-  async function getRecommendations(apiOptions) {
-    let url = "https://api.spotify.com/v1/recommendations?";
-    let queryParams = [];
-    for (const [key, value] of Object.entries(apiOptions.data)) {
-      if (!value) {
-        continue;
-      }
-      queryParams.push(key + "=" + value);
-    }
-    url += queryParams.join("&");
-    var accessToken = Spicetify.Platform.Session.accessToken;
-    let response = await fetch(
-      url,
-      {
-        headers: {
-          Authorization: "Bearer " + accessToken
-        }
-      }
-    );
-    return response.status == 200 ? await response.json() : {};
+// Localiza esta función y sustitúyela por esta versión:
+async function getRecommendations(apiOptions) {
+  // 1. Usamos la URL interna (spclient) que propusiste para saltar el bloqueo
+  let url = "https://spclient.wg.spotify.com/recommendations-seed/v1/recommendations?";
+  let queryParams = [];
+  
+  // Mantenemos este bucle para que la extensión siga pudiendo filtrar por 
+  // tempo, energía o baile según lo que elijas en la interfaz
+  for (const [key, value] of Object.entries(apiOptions.data)) {
+    if (!value) continue;
+    queryParams.push(key + "=" + value);
   }
+  url += queryParams.join("&");
+
+  try {
+    // 2. REEMPLAZO CLAVE: Usamos 'Spicetify.CosmosAsync.get' en lugar de 'fetch'
+    // Esto es lo que elimina el error de CORS y el límite 429 [Log]
+    const data = await Spicetify.CosmosAsync.get(url);
+    
+    // 3. Devolvemos los datos directamente (Cosmos ya procesa el JSON)
+    // Entregamos { tracks: [] } si falla para que la app no se detenga [2]
+    return data && data.tracks ? data : { tracks: [] };
+  } catch (error) {
+    console.error("Error en recomendaciones por Cosmos:", error);
+    return { tracks: [] };
+  }
+}
   var dynamicRecommendationsService_default = getRecommendations;
 
   // src/types/spotify-web-api.d.ts
