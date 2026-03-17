@@ -2333,29 +2333,38 @@ var Enhancify = (() => {
   // src/components/NowPlaying.tsx
   var import_react9 = __toESM(require_react());
 
-  // src/services/common.tsx
-  function getID(uri) {
-    return uri.split(":")[2];
-  }
-  var common_default = getID;
+// Esta función traduce la dirección de Spotify al ID corto que necesita la API
+const getID = (uri) => {
+  if (!uri) return "";
+  // Extrae el ID usando la herramienta nativa de Spicetify [3]
+  return Spicetify.URI.fromString(uri).id || uri.split(":")[4];
+};
 
-  // src/services/nowPlayingService.tsx
-  async function getAudioFeatures(songURI) {
-    if (!songURI) {
-      return {};
-    }
-    var accessToken = Spicetify.Platform.Session.accessToken;
-    var songID = common_default(songURI);
-    let response = await fetch(
-      "https://api.spotify.com/v1/audio-features/" + songID,
-      {
-        headers: {
-          Authorization: "Bearer " + accessToken
-        }
-      }
-    );
-    return response.status == 200 ? await response.json() : {};
+// Asignamos el apodo common_default para que las partes viejas del código no fallen
+var common_default = getID;
+
+async function getRecommendations(apiOptions) {
+  // Usamos el endpoint interno que descubriste (algoritmo real de Spotify)
+  let url = "https://spclient.wg.spotify.com/recommendations-seed/v1/recommendations?";
+  let queryParams = [];
+  
+  for (const [key, value] of Object.entries(apiOptions.data)) {
+    if (!value) continue;
+    queryParams.push(key + "=" + value);
   }
+  url += queryParams.join("&");
+
+  try {
+    // REEMPLAZO DE FETCH POR COSMOS: Esto salta el muro de CORS y el límite 429 [Log]
+    const data = await Spicetify.CosmosAsync.get(url);
+    
+    // Devolvemos los tracks para que RecommendationsRender pueda dibujarlos [10, 11]
+    return data && data.tracks ? data : { tracks: [] };
+  } catch (error) {
+    console.error("Error en recomendaciones por Cosmos:", error);
+    return { tracks: [] };
+  }
+}
   var nowPlayingService_default = getAudioFeatures;
 
   // postcss-module:C:\Users\parim\AppData\Local\Temp\tmp-24776-WK7M3eVNRHNg\1939dfe04e43\app.module.css
