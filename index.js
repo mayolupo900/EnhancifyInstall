@@ -2600,7 +2600,7 @@ async function getRecommendations(apiOptions) {
         this.setArtistQueue();
       };
       this.setSongQueue = () => {
-        let curSongID = common_default(Spicetify.Player.data.item.uri);
+        let curSongID = getID(Spicetify.Player.data.item.uri);
         if (this.state.songQueue && this.state.songQueue[this.state.songQueue.length - 1] == curSongID) {
           return;
         }
@@ -2646,7 +2646,7 @@ async function getRecommendations(apiOptions) {
         }
         let newArtistQueue = this.state.artistQueue.slice();
         for (const artist of Spicetify.Player.data.item.artists) {
-          let artistID = common_default(artist.uri);
+          let artistID = getID(artist.uri);
           if (newArtistQueue.includes(artistID)) {
             newArtistQueue = newArtistQueue.filter((val, ind) => val != artistID);
           }
@@ -2872,7 +2872,7 @@ async function getRecommendations(apiOptions) {
       };
       this.generateRecommendations = async () => {
         let apiOptions = new GetRecommendationsInput();
-        apiOptions.data.seed_tracks = common_default(this.props.songURI);
+        apiOptions.data.seed_tracks = getID(this.props.songURI);
         apiOptions.data.limit = "8";
         for (let key in this.props.selectedMetrics) {
           let apiDataKey = "target_" + key.toLowerCase();
