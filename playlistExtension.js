@@ -5,38 +5,31 @@
           "use strict";
 var Enhancify = (() => {
   // src/services/multiTrackAudioFeaturesService.tsx
-  async function getMultiTrackAudioFeatures(songIDs) {
-    if (!songIDs || songIDs.length === 0) {
-      return [];
-    }
-    const accessToken = Spicetify.Platform.Session.accessToken;
-    let allAudioFeatures = [];
-    const chunks = [];
-    const chunkSize = 100;
-    for (let i = 0; i < songIDs.length; i += chunkSize) {
-      chunks.push(songIDs.slice(i, i + chunkSize));
-    }
-    for (const chunk of chunks) {
-      const idsString = chunk.join(",");
-      const response = await fetch(
-        `https://api.spotify.com/v1/audio-features?ids=${idsString}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      if (response.status === 200) {
-        const data = await response.json();
-        if (data && data.audio_features) {
-          allAudioFeatures = allAudioFeatures.concat(data.audio_features.filter(Boolean));
-        }
-      } else {
-        console.error("Failed to fetch audio features for chunk:", chunk);
+async function getMultiTrackAudioFeatures(songIDs) {
+  if (!songIDs || songIDs.length === 0) return [];
+  
+  let allAudioFeatures = [];
+  const chunkSize = 100; // Cosmos permite hasta 100 IDs por vez [1]
+  
+  for (let i = 0; i < songIDs.length; i += chunkSize) {
+    const chunk = songIDs.slice(i, i + chunkSize);
+    const idsString = chunk.join(",");
+    
+    try {
+      // Usamos Cosmos para evitar el bloqueo 429 en playlists grandes [1, 2]
+      const url = `https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=${idsString}`;
+      const data = await Spicetify.CosmosAsync.get(url);
+      
+      if (data && data.audio_features) {
+        // Filtramos los nulos para evitar errores al ordenar
+        allAudioFeatures = allAudioFeatures.concat(data.audio_features.filter(Boolean));
       }
+    } catch (e) {
+      console.error("Fallo en Cosmos masivo:", e);
     }
-    return allAudioFeatures;
   }
+  return allAudioFeatures;
+}
   var multiTrackAudioFeaturesService_default = getMultiTrackAudioFeatures;
 
   // src/services/playlistTrackIDService.tsx
