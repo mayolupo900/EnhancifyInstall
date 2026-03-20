@@ -2487,7 +2487,7 @@ async function getRecommendations(apiOptions) {
       this.max_time_signature = "";
       this.target_time_signature = "";
       this.min_valence = "";
-      this.max_valenRecommendationsModalce = "";
+      this.max_valence = "";
       this.target_valence = "";
     }
   };
