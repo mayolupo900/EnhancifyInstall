@@ -1,3 +1,5 @@
+//playlistExtension.js
+
 (async function() {
           while (!Spicetify.React || !Spicetify.ReactDOM) {
             await new Promise(resolve => setTimeout(resolve, 10));
