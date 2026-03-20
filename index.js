@@ -2365,6 +2365,33 @@ async function getRecommendations(apiOptions) {
     return { tracks: [] };
   }
 }
+  // Definición de la función para obtener métricas (Cosmos + Desempaquetado)
+async function getAudioFeatures(songURI) {
+  if (!songURI) return {};
+  
+  // Obtenemos el ID limpio usando la función getID que ya tienes [2]
+  const songID = getID(songURI);
+
+  try {
+    // Usamos la API interna de Cosmos para evitar bloqueos
+    const url = "https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=" + songID;
+    const data = await Spicetify.CosmosAsync.get(url);
+
+    // DESEMPAQUETADO: Accedemos al primer elemento de la lista para que no salga "0"
+    if (data && data.audio_features && data.audio_features) {
+      return data.audio_features; 
+    }
+  } catch (e) {
+    console.warn("Error en Cosmos:", e);
+  }
+
+  // Backup: Si Cosmos falla, intentamos la Web API tradicional
+  const accessToken = Spicetify.Platform.Session.accessToken;
+  const response = await fetch("https://api.spotify.com/v1/audio-features/" + songID, {
+    headers: { Authorization: "Bearer " + accessToken }
+  });
+  return response.status == 200 ? await response.json() : {};
+}
   var nowPlayingService_default = getAudioFeatures;
 
   // postcss-module:C:\Users\parim\AppData\Local\Temp\tmp-24776-WK7M3eVNRHNg\1939dfe04e43\app.module.css
