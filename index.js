@@ -1,3 +1,5 @@
+//index.js 
+
 var Enhancify = (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
@@ -2370,6 +2372,11 @@ async function getRecommendations(apiOptions) {
     return { tracks: [] };
   }
 }
+
+  // Este es el "Punto 2": Une el modal con la nueva función de Cosmos
+var dynamicRecommendationsService_default = getRecommendations;
+
+  
   // Definición de la función para obtener métricas (Cosmos + Desempaquetado)
 async function getAudioFeatures(songURI) {
   if (!songURI) return {};
