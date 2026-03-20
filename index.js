@@ -2332,7 +2332,7 @@ var Enhancify = (() => {
   // postcss-module:C:\Users\parim\AppData\Local\Temp\tmp-24776-WK7M3eVNRHNg\1939dfe03890\app.module.css
   var app_module_default = { "text": "app-module__text___q6CF6_Enhancify", "topBar": "app-module__topBar___gbq6k_Enhancify", "nowPlayingSidebar": "app-module__nowPlayingSidebar___F4UGj_Enhancify", "trackInfoPrimary": "app-module__trackInfoPrimary___PLXQO_Enhancify", "trackCover": "app-module__trackCover___UFVka_Enhancify", "statsBlock": "app-module__statsBlock___F0E-V_Enhancify", "statContainer": "app-module__statContainer___aQ1Fr_Enhancify", "statTitle": "app-module__statTitle___HP8oz_Enhancify", "statLabel": "app-module__statLabel___9pxah_Enhancify", "statValue": "app-module__statValue___JfE7d_Enhancify", "graphicContainer": "app-module__graphicContainer___P76QX_Enhancify", "recommendationsSection": "app-module__recommendationsSection___Emxwk_Enhancify", "recommendationsBlock": "app-module__recommendationsBlock___NYV5h_Enhancify", "trackContainer": "app-module__trackContainer___zmxIn_Enhancify", "recommendationsCover": "app-module__recommendationsCover___7Cufk_Enhancify", "trackName": "app-module__trackName___90Kd4_Enhancify", "playIcon": "app-module__playIcon___eaD-6_Enhancify", "changeRecTragetBtn": "app-module__changeRecTragetBtn___cS88j_Enhancify", "trackNameText": "app-module__trackNameText___J3m-Y_Enhancify", "leftSideBar": "app-module__leftSideBar___-boqF_Enhancify", "scrollTitle": "app-module__scrollTitle___vNLvZ_Enhancify", "scrollText": "app-module__scrollText___25P7l_Enhancify", "recommendationsLabel": "app-module__recommendationsLabel___UHF7q_Enhancify", "recommendationHeader": "app-module__recommendationHeader___EK4Rr_Enhancify", "recommendationTarget": "app-module__recommendationTarget___RC552_Enhancify", "recommendationsHeaderSpacer": "app-module__recommendationsHeaderSpacer___M5jYa_Enhancify", "settingContainer": "app-module__settingContainer___7DWOV_Enhancify", "settingLabel": "app-module__settingLabel___jD7Lv_Enhancify", "modal": "app-module__modal___YLXrG_Enhancify", "settingsModalContainer": "app-module__settingsModalContainer___Uryaq_Enhancify", "Container": "app-module__Container___eL3j6_Enhancify", "modalHeaderContainer": "app-module__modalHeaderContainer___2jP9z_Enhancify", "sectionHeaderContainer": "app-module__sectionHeaderContainer___oa7pd_Enhancify", "settingsIconContainer": "app-module__settingsIconContainer___TDp-k_Enhancify", "metricsRecommendationContainer": "app-module__metricsRecommendationContainer___TXr7b_Enhancify", "run": "app-module__run___9fxLL_Enhancify" };
 
-  // src/components/NowPlaying.tsx
+  // src/components/
   var import_react9 = __toESM(require_react());
 
 // Esta función traduce la dirección de Spotify al ID corto que necesita la API
@@ -3007,7 +3007,31 @@ async function getRecommendations(apiOptions) {
   var SettingsModal_default = SettingsModal;
 
   // src/components/NowPlaying.tsx
-  var import_react_modal = __toESM(require_lib());
+// 1. Traductor de IDs
+const getID = (uri) => {
+  if (!uri) return "";
+  try {
+    return Spicetify.URI.fromString(uri).id || uri.split(":")[7];
+  } catch(e) {
+    return uri.split(":")[7] || "";
+  }
+};
+var common_default = getID;
+
+// 2. Definición de la función (SIEMPRE antes de su uso)
+async function getAudioFeatures(songURI) {
+  if (!songURI) return {};
+  const songID = getID(songURI);
+  try {
+    const url = `https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=${songID}`;
+    const data = await Spicetify.CosmosAsync.get(url);
+    if (data && data.audio_features) return data.audio_features;
+  } catch (e) { console.warn("Fallo Cosmos"); }
+  return {};
+}
+
+// 3. El puente (ReferenceError fix)
+var nowPlayingService_default = getAudioFeatures;
 
   // postcss-module:C:\Users\parim\AppData\Local\Temp\tmp-24776-WK7M3eVNRHNg\1939dfe04e31\app.module.css
   var app_module_default7 = { "text": "app-module__text___q6CF6_Enhancify", "topBar": "app-module__topBar___gbq6k_Enhancify", "nowPlayingSidebar": "app-module__nowPlayingSidebar___F4UGj_Enhancify", "trackInfoPrimary": "app-module__trackInfoPrimary___PLXQO_Enhancify", "trackCover": "app-module__trackCover___UFVka_Enhancify", "statsBlock": "app-module__statsBlock___F0E-V_Enhancify", "statContainer": "app-module__statContainer___aQ1Fr_Enhancify", "statTitle": "app-module__statTitle___HP8oz_Enhancify", "statLabel": "app-module__statLabel___9pxah_Enhancify", "statValue": "app-module__statValue___JfE7d_Enhancify", "graphicContainer": "app-module__graphicContainer___P76QX_Enhancify", "recommendationsSection": "app-module__recommendationsSection___Emxwk_Enhancify", "recommendationsBlock": "app-module__recommendationsBlock___NYV5h_Enhancify", "trackContainer": "app-module__trackContainer___zmxIn_Enhancify", "recommendationsCover": "app-module__recommendationsCover___7Cufk_Enhancify", "trackName": "app-module__trackName___90Kd4_Enhancify", "playIcon": "app-module__playIcon___eaD-6_Enhancify", "changeRecTragetBtn": "app-module__changeRecTragetBtn___cS88j_Enhancify", "trackNameText": "app-module__trackNameText___J3m-Y_Enhancify", "leftSideBar": "app-module__leftSideBar___-boqF_Enhancify", "scrollTitle": "app-module__scrollTitle___vNLvZ_Enhancify", "scrollText": "app-module__scrollText___25P7l_Enhancify", "recommendationsLabel": "app-module__recommendationsLabel___UHF7q_Enhancify", "recommendationHeader": "app-module__recommendationHeader___EK4Rr_Enhancify", "recommendationTarget": "app-module__recommendationTarget___RC552_Enhancify", "recommendationsHeaderSpacer": "app-module__recommendationsHeaderSpacer___M5jYa_Enhancify", "settingContainer": "app-module__settingContainer___7DWOV_Enhancify", "settingLabel": "app-module__settingLabel___jD7Lv_Enhancify", "modal": "app-module__modal___YLXrG_Enhancify", "settingsModalContainer": "app-module__settingsModalContainer___Uryaq_Enhancify", "Container": "app-module__Container___eL3j6_Enhancify", "modalHeaderContainer": "app-module__modalHeaderContainer___2jP9z_Enhancify", "sectionHeaderContainer": "app-module__sectionHeaderContainer___oa7pd_Enhancify", "settingsIconContainer": "app-module__settingsIconContainer___TDp-k_Enhancify", "metricsRecommendationContainer": "app-module__metricsRecommendationContainer___TXr7b_Enhancify", "run": "app-module__run___9fxLL_Enhancify" };
@@ -3052,7 +3076,7 @@ async function getRecommendations(apiOptions) {
   };
   var HelpModal_default = HelpModal;
 
-  // src/components/NowPlaying.tsx
+  // src/components/
   var _a2;
   var NowPlaying = class extends import_react9.default.Component {
     constructor() {
