@@ -3006,7 +3006,7 @@ const getID = (uri) => {
   try {
     return Spicetify.URI.fromString(uri).id || uri.split(":")[7];
   } catch(e) {
-    return uri.split(":")[7] || "";
+    return uri.split(":")[2] || "";
   }
 };
 var common_default = getID;
@@ -3018,7 +3018,9 @@ async function getAudioFeatures(songURI) {
   try {
     const url = `https://spclient.wg.spotify.com/audio-attributes/v1/audio-features?ids=${songID}`;
     const data = await Spicetify.CosmosAsync.get(url);
-    if (data && data.audio_features) return data.audio_features;
+    // Devuelve el primer elemento del array, que es el objeto real
+    if (data && data.audio_features && data.audio_features.length > 0) 
+        return data.audio_features[0];
   } catch (e) { console.warn("Fallo Cosmos"); }
   return {};
 }
