@@ -29,48 +29,43 @@ async function getMultiTrackAudioFeatures(songIDs) {
   var multiTrackAudioFeaturesService_default = getMultiTrackAudioFeatures;
 
   // src/services/playlistTrackIDService.tsx
-  async function getPlaylistTrackIDs(playlistID) {
-    if (!playlistID) {
+async function getPlaylistTrackIDs(playlistID) {
+  if (!playlistID) return [];
+
+  let trackIDs = [];
+  let nextURL = `/v1/playlists/${playlistID}/tracks`;
+
+  while (nextURL) {
+    try {
+      const data = await Spicetify.CosmosAsync.get(nextURL);
+      const ids = data.items
+        .filter(item => item.track && item.track.id)
+        .map(item => item.track.id);
+      trackIDs = trackIDs.concat(ids);
+      nextURL = data.next ? new URL(data.next).pathname + new URL(data.next).search : null;
+    } catch (e) {
+      console.warn("Error Cosmos:", e);
       return [];
     }
-    const accessToken = Spicetify.Platform.Session.accessToken;
-    let trackIDs = [];
-    let nextURL = `https://api.spotify.com/v1/playlists/${playlistID}/tracks`;
-    while (nextURL) {
-      const response = await fetch(nextURL, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      });
-      if (response.status !== 200) {
-        return [];
-      }
-      const data = await response.json();
-      const ids = data.items.filter((item) => item.track && item.track.id).map((item) => item.track.id);
-      trackIDs = trackIDs.concat(ids);
-      nextURL = data.next;
-    }
-    return trackIDs;
   }
+
+  return trackIDs;
+}
   var playlistTrackIDService_default = getPlaylistTrackIDs;
 
   // src/services/reorderPlaylistService.tsx
-  async function reorderPlaylist(playlistID, sortedTrackURIs) {
-    if (!playlistID || !sortedTrackURIs.length) {
-      console.error("No playlist ID or sorted tracks provided.");
-      return;
-    }
-    const uri = `https://api.spotify.com/v1/playlists/${playlistID}/tracks`;
-    const chunks = [];
-    const chunkSize = 100;
-    for (let i = 0; i < sortedTrackURIs.length; i += chunkSize) {
-      chunks.push(sortedTrackURIs.slice(i, i + chunkSize));
-    }
-    for (const chunk of chunks) {
-      await PlaylistAPICall("DELETE", uri, chunk);
-      await PlaylistAPICall("POST", uri, chunk);
-    }
+async function reorderPlaylist(playlistID, sortedTrackURIs) {
+  if (!playlistID || !sortedTrackURIs.length) return;
+
+  const uri = `/v1/playlists/${playlistID}/tracks`;
+  const chunkSize = 100;
+
+  for (let i = 0; i < sortedTrackURIs.length; i += chunkSize) {
+    const chunk = sortedTrackURIs.slice(i, i + chunkSize);
+    // DELETE primero
+    await Spicetify.CosmosAsync.post(`${uri}/replace`, { uris: chunk });
   }
+}
   async function PlaylistAPICall(requestType, uri, chunk) {
     const accessToken = Spicetify.Platform.Session.accessToken;
     let trackURIs = [];
@@ -142,7 +137,7 @@ async function getMultiTrackAudioFeatures(songIDs) {
     };
     addStyles();
     function isPlaylistPage() {
-      const pathname = Spicetify.Platform.History.location.pathname;
+      const pathname = Spicetify.Platform.History?.location?.pathname || "";
       const matches = pathname.match(/playlist\/(.*)/);
       return matches ? matches[1] : null;
     }
